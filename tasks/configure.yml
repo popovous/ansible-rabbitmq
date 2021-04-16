@@ -1,0 +1,50 @@
+---
+- name: ensure old config file does not exist
+  file:
+    path: /etc/rabbitmq/rabbitmq.config
+    state: absent
+  notify: restart rabbitmq-server
+- name: configure rabbitmq
+  template:
+    src: rabbitmq.conf.j2
+    dest: /etc/rabbitmq/rabbitmq.conf
+  notify: restart rabbitmq-server
+  when: rabbitmq_config is defined
+- name: configure rabbitmq environment
+  template:
+    src: rabbitmq-env.conf.j2
+    dest: /etc/rabbitmq/rabbitmq-env.conf
+  notify: restart rabbitmq-server
+  when: rabbitmq_env is defined
+- name: "ensure that rabbitmq override systemd directory exists"
+  file:
+    path: /etc/systemd/system/rabbitmq-server.service.d
+    state: directory
+    mode: 0755
+    owner: root
+  when:
+    - rabbitmq_systemd_override | length > 0
+- name: "remove override systemd config file if rabbitmq_systemd_override is empty"
+  file:
+    path: /etc/systemd/system/rabbitmq-server.service.d/override.conf
+    state: absent
+  notify:
+    - restart rabbitmq-server
+  when:
+    - rabbitmq_systemd_override | length == 0
+- name: "copy override systemd file config if exists"
+  template:
+    src: override.conf.j2
+    dest: "/etc/systemd/system/rabbitmq-server.service.d/override.conf"
+    force: true
+    mode: 0644
+    owner: root
+  notify:
+    - restart rabbitmq-server
+  when:
+    - rabbitmq_systemd_override | length > 0
+- name: "check that the override systemd file doesn't break the service"
+  shell: systemd-analyze verify rabbitmq-server.service
+  changed_when: false
+  when:
+    - rabbitmq_systemd_override | length > 0
