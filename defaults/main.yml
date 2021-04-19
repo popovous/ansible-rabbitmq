@@ -18,3 +18,5 @@ rabbitmq_users_absent:
 rabbitmq_version: '3.8.1'
 rabbitmq_vhosts: []
 rabbitmq_vhosts_absent: []
+
+rabbitmq_cluster: false

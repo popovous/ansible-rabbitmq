@@ -1,4 +1,23 @@
 ---
-- include: rabbitmq.yml
-  tags:
-    - rabbitmq
+- include: install.yml
+- include: plugins.yml
+- include: configure.yml
+- include: vhosts.yml
+- include: users.yml
+
+- name: checking to see if already clustered
+  stat:
+    path: /etc/rabbitmq/.ansible.cluster.configured
+  become: true
+  register: clustered
+
+- include: cluster.yml
+  when: >
+        rabbitmq_cluster and
+        not clustered['stat']['exists']
+
+- name: assure rabbitmq-server is started
+  service:
+    name: rabbitmq-server
+    enabled: true
+    state: started
